@@ -1,0 +1,192 @@
+<script>
+  async function deleteBook (idBook){
+    try {
+      console.log(idBook)
+      const response = await fetch(`/libros/${idBook}/eliminar`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        document.getElementById("success-message").classList.remove("hidden");
+
+        // Recargar datos en lugar de redirigir
+        setTimeout(() => {
+          document.getElementById("success-message").classList.add("hidden");
+          window.location ="/libros/home"
+        }, 500);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || "Error al eliminar el libro");
+      }
+    } catch (error) {
+      console.error("Error al eliminar el libro:", error);
+    }
+  }
+</script>
+
+<div
+  id="success-message"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+>
+  <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm mx-auto">
+    <div class="text-center">
+      <svg
+        class="mx-auto h-12 w-12 text-green-500"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M5 13l4 4L19 7"
+        />
+      </svg>
+      <h3 class="mt-2 text-lg font-medium text-gray-900">
+        El libro se elimno de forma correcta
+      </h3>
+      <div class="mt-4">
+        <p class="text-sm text-gray-500">
+          Serás redirigido en unos segundos...
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="px-6 min-h-[100vh] py-8 bg-gray-50">
+  <div class="max-w-7xl mx-auto">
+    <div class="w-full flex justify-between items-center">
+      <h1 class="text-5xl font-bold text-indigo-800 mb-6">Libros</h1>
+      <div>
+        <input 
+        type="text" 
+        placeholder="buscar ..." id="input-search" 
+        class="bg-indigo-100 w-[20rem] rounded-md px-2 py-1">
+        <button id="btn-search" class="inline-flex items-center px-4 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors" type="submit" >Buscar</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+      <div class="p-6">
+        <h2 class="text-xl font-semibold text-gray-700 mb-4">Lista de libros</h2>
+        
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+          <!-- Encabezados de la tabla -->
+          <div class="flex bg-indigo-50 font-medium text-indigo-900">
+            <p class="p-3 w-[10%] min-w-[80px]">ID</p>
+            <p class="p-3 w-[20%] min-w-[200px]">Título</p>
+            <p class="p-3 w-[20%] min-w-[200px]">Autor</p>
+            <p class="p-3 w-[15%] min-w-[150px]">Año Publicación</p>
+            <p class="p-3 w-[20%] min-w-[200px]">Género</p>
+            <p class="p-3 w-[15%] min-w-[150px]">Opciones</p>
+          </div>
+          <div id="lista-libros" class="min-h-[25rem]">
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    
+    <!-- Botón para agregar nuevo libro -->
+    <div class="mt-6 flex items-end gap-4">
+      <a href="/libros/nuevo" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+        Agregar Libro
+      </a>
+      <button id="btn-prev" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Atras</button>
+      <button id="btn-next" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Siguiente</button>
+      <span id="number-page">pagina:1</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  let estado = {
+    pagina: 1,
+    limite: 10,
+    totalPaginas: 1,
+  };
+
+  // Cargar datos
+  async function cargarDatos() {
+    const params = new URLSearchParams({
+      pagina: estado.pagina,
+      limite: estado.limite,
+    });
+
+    const response = await fetch(`/libros?${params}`);
+    const data = await response.json();
+    console.log(data);
+    estado.totalPaginas = data.paginacion.totalPaginas;
+    actualizarUI(data.libros);
+  }
+
+
+  // Actualizar interfaz
+  function actualizarUI(libros) {
+    const listaLibros = document.getElementById("lista-libros");
+    listaLibros.innerHTML = libros
+      .map(
+        (libro) => `
+      <div class="flex items-center border-t border-gray-200 hover:bg-gray-50 transition-colors">
+            <p class="p-3 w-[10%] min-w-[80px] text-gray-600"> ${libro.id}</p>
+            <p class="p-3 w-[20%] min-w-[200px] font-medium text-gray-800">${libro.titulo}</p>
+            <p class="p-3 w-[20%] min-w-[200px] text-gray-600">${libro.autor}</p>
+            <p class="p-3 w-[15%] min-w-[150px] text-gray-600">${libro.anio_publicacion}</p>
+            <p class="p-3 w-[20%] min-w-[200px] text-gray-600">
+              <span class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
+                ${libro.genero}
+              </span>
+            </p>
+            <div class="p-3 w-[15%] min-w-[150px] flex space-x-3">
+              <a href="/libros/${libro.id}/editar" class="text-indigo-600 hover:text-indigo-800 font-medium">Editar</a>
+              <button onclick="deleteBook(${libro.id})" class="text-red-600 hover:text-red-800 font-medium">Borrar</button>
+            </div>
+          </div>
+    `
+      )
+      .join("");
+  }
+
+  // Event listeners
+  document
+    .getElementById("btn-prev")
+    .addEventListener("click", () => cambiarPagina(estado.pagina - 1));
+  document
+    .getElementById("btn-next")
+    .addEventListener("click", () => cambiarPagina(estado.pagina + 1));
+
+  function cambiarPagina(nuevaPagina) {
+    if (nuevaPagina > 0 && nuevaPagina <= estado.totalPaginas) {
+      estado.pagina = nuevaPagina;
+      document.getElementById(
+        "number-page"
+      ).textContent = `pagina: ${estado.pagina}`;
+      cargarDatos();
+    }
+  }
+
+  document.getElementById('btn-search').addEventListener('click',async ()=>{
+    try {
+      const name = document.getElementById('input-search').value;
+      if(name == ""){
+        alert("Debe de ingresar un nombre para buscar");
+        return;
+      }
+
+      const response = await fetch(`/libros/search?name=${name}`)
+
+      const data = await response.json();
+
+      actualizarUI(data.data)
+
+    } catch (error) {
+      console.log(error)
+    }
+  })
+
+
+  document.addEventListener("DOMContentLoaded", cargarDatos);
+</script>
